@@ -1,0 +1,115 @@
+{
+  "image": "miku.png",
+  "font_name": "Segoe UI",
+  "font_size": 15,
+  "volume_step": "5%",
+  "width": 640,
+  "height": 150,
+  "cover": {
+    "x": 16,
+    "y": 16,
+    "width": 118,
+    "height": 118,
+    "z_order": "below",
+    "keep_aspect": true,
+    "enabled": false
+  },
+  "station": {
+    "x": 150,
+    "y": 0,
+    "width": 490,
+    "height": 36,
+    "font_size": 32,
+    "color": "#ffffff",
+    "align": "far",
+    "prefix": ""
+  },
+  "artist": {
+    "x": 256,
+    "y": 38,
+    "width": 380,
+    "height": 24,
+    "font_size": 20,
+    "color": "#ffffff",
+    "align": "far",
+    "prefix": ""
+  },
+  "track": {
+    "x": 150,
+    "y": 0,
+    "width": 490,
+    "height": 36,
+    "font_size": 32,
+    "color": "#FFFFFF",
+    "align": "far",
+    "prefix": ""
+  },
+  "status": {
+    "x": 369,
+    "y": 111,
+    "width": 160,
+    "height": 35,
+    "font_size": 29,
+    "color": "#FFD700",
+    "prefix": "",
+    "format": "[%s]"
+  },
+  "order": {
+    "x": 52,
+    "y": 110,
+    "width": 287,
+    "height": 35,
+    "font_size": 29,
+    "color": "#ffd700",
+    "prefix": "",
+    "format": "[%s]"
+  },
+  "volume": {
+    "x": 512,
+    "y": 119,
+    "width": 121,
+    "height": 25,
+    "font_size": 16,
+    "color": "#00aaff",
+    "prefix": "",
+    "type": "bar",
+    "bg_color": "#ffffff",
+    "show_text": false
+  },
+  "states": {
+    "playing": {
+      "show": [
+        "artist",
+        "track"
+      ]
+    },
+    "paused": {
+      "show": [
+        "artist",
+        "track",
+        "status"
+      ]
+    },
+    "station": {
+      "show": [
+        "station",
+        "volume",
+        "order"
+      ]
+    },
+    "order": {
+      "show": [
+        "order",
+        "status",
+        "track"
+      ]
+    },
+    "volume": {
+      "show": [
+        "volume",
+        "track",
+        "artist"
+      ]
+    }
+  }
+}

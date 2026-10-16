@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radio Mod - Skin Maker</title>
+<style>
+  :root {
+    --bg-dark: #121318;
+    --panel-bg: #1b1d24;
+    --panel-border: #2c2f3b;
+    --accent: #00d2ff;
+    --accent-hover: #33dcff;
+    --danger: #ff4757;
+    --warning: #ffa502;
+    --text-primary: #f1f2f6;
+    --text-secondary: #9da3b4;
+    --font-mono: 'Consolas', 'Fira Code', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  header {
+    background: #161820;
+    border-bottom: 1px solid var(--panel-border);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { font-size: 1.15rem; color: var(--accent); letter-spacing: 0.5px; }
+  .badge { background: #252834; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; color: var(--text-secondary); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* WORKSPACE / PREVIEW */
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    background: #0d0e12;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .toolbar {
+    background: #171922;
+    border-bottom: 1px solid var(--panel-border);
+    padding: 8px 16px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .toolbar-group { display: flex; align-items: center; gap: 8px; }
+  .toolbar label { color: var(--text-secondary); font-size: 0.8rem; }
+  .btn-group { display: flex; border-radius: 4px; overflow: hidden; border: 1px solid var(--panel-border); }
+  .btn-group button {
+    background: #1f222e;
+    color: var(--text-primary);
+    border: none;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: 0.15s;
+  }
+  .btn-group button.active { background: var(--accent); color: #000; font-weight: bold; }
+  .btn-group button:hover:not(.active) { background: #2a2e3d; }
+
+  .notice-banner {
+    display: none;
+    background: rgba(255, 71, 87, 0.15);
+    border-left: 4px solid var(--danger);
+    color: #ff6b81;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+
+  .canvas-container {
+    flex: 1;
+    overflow: auto;
+    padding: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: 
+      linear-gradient(45deg, #14161f 25%, transparent 25%), 
+      linear-gradient(-45deg, #14161f 25%, transparent 25%), 
+      linear-gradient(45deg, transparent 75%, #14161f 75%), 
+      linear-gradient(-45deg, transparent 75%, #14161f 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  }
+
+  .screen-box-wrapper {
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    transform-origin: center center;
+    border: 1px dashed rgba(0, 210, 255, 0.4);
+  }
+
+  .screen-box {
+    width: 400px;
+    height: 150px;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Layers inside the screen box */
+  .skin-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: top left;
+    pointer-events: none;
+  }
+
+  .mock-cover {
+    position: absolute;
+    background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #fff;
+    overflow: hidden;
+  }
+  .mock-cover img { width: 100%; height: 100%; object-fit: contain; }
+
+  .widget-box {
+    position: absolute;
+    cursor: move;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: visible;
+    box-sizing: border-box;
+    transition: outline 0.1s;
+  }
+  .widget-box:hover { outline: 1px dashed var(--accent); }
+  .widget-box.selected { outline: 2px solid var(--accent) !important; z-index: 50 !important; }
+
+  .widget-label {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .resize-handle {
+    display: none;
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    right: 0;
+    bottom: 0;
+    background: var(--accent);
+    cursor: nwse-resize;
+    z-index: 10;
+  }
+  .widget-box.selected .resize-handle { display: block; }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--panel-bg);
+    border-left: 1px solid var(--panel-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tabs {
+    display: flex;
+    background: #14161f;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: var(--panel-bg); }
+
+  .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    display: none;
+  }
+  .tab-content.active { display: block; }
+
+  .form-section {
+    background: #161822;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .form-section h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .form-row:last-child { margin-bottom: 0; }
+
+  /* Two fields per line, guaranteed */
+  .form-row.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+
+  .form-col {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .form-col label { font-size: 0.75rem; color: var(--text-secondary); }
+
+  .form-col > input,
+  .form-col > select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .form-col.narrow { flex: 0 0 48px; }
+
+  input[type="text"], input[type="number"], select {
+    background: #232634;
+    border: 1px solid var(--panel-border);
+    color: var(--text-primary);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    outline: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus { border-color: var(--accent); }
+  input[type="color"] {
+    -webkit-appearance: none;
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    height: 31px;
+    width: 100%;
+    padding: 0;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  textarea#jsonEditor {
+    width: 100%;
+    height: 480px;
+    background: #111217;
+    color: #68d391;
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    resize: vertical;
+    white-space: pre;
+    line-height: 1.4;
+  }
+
+  .btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn-secondary { background: #2a2e3d; color: var(--text-primary); }
+  .btn-secondary:hover { background: #353b4d; }
+  .btn-danger { background: var(--danger); color: #fff; }
+
+  /* Volume Bar Preview */
+  .bar-preview {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,0.4);
+  }
+  .bar-fill {
+    height: 100%;
+    width: 70%;
+    background: var(--accent);
+  }
+  .bar-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <h1>Radio Mod Skin Maker</h1>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <button class="btn btn-secondary" onclick="exportJSON()">Download .json</button>
+    <button class="btn" onclick="copyJSON()">Copy JSON</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- WORKSPACE -->
+  <div class="workspace">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <label>Skin PNG:</label>
+        <input type="file" id="imageInput" accept=".png" style="font-size: 0.8rem; color: #aaa;">
+      </div>
+
+      <div class="toolbar-group">
+        <label>Zoom:</label>
+        <div class="btn-group" id="zoomGroup">
+          <button onclick="setZoom(1)" class="active">1x</button>
+          <button onclick="setZoom(1.5)">1.5x</button>
+          <button onclick="setZoom(2)">2x</button>
+          <button onclick="setZoom(3)">3x</button>
+          <button onclick="setZoom(4)">4x</button>
+        </div>
+      </div>
+
+      <div class="toolbar-group">
+        <label>Preview State:</label>
+        <select id="statePreviewSelect" onchange="changePreviewState(this.value)">
+          <option value="all">Design Mode (Show All)</option>
+          <option value="playing">State: Playing</option>
+          <option value="paused">State: Paused</option>
+          <option value="station">State: Station Change</option>
+          <option value="order">State: Order Change</option>
+          <option value="volume">State: Volume Change</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="notice-banner" id="dimensionNotice"></div>
+
+    <div class="canvas-container">
+      <div class="screen-box-wrapper" id="boxWrapper">
+        <div class="screen-box" id="screenBox">
+          <!-- Cover (Below Skin) -->
+          <div id="coverBelow" class="mock-cover" style="display:none;">COVER</div>
+
+          <!-- Base Skin PNG Layer -->
+          <div id="skinLayer" class="skin-layer"></div>
+
+          <!-- Cover (Above Skin) -->
+          <div id="coverAbove" class="mock-cover" style="display:none;">COVER</div>
+
+          <!-- Widgets -->
+          <div id="widget_station" class="widget-box" onclick="selectField('station', event)">
+            <span class="widget-label">STATION: Electrosphere FM</span>
+            <div class="resize-handle"></div>
+          </div>
+          <div id="widget_artist" class="widget-box" onclick="selectField('artist', event)">
+            <span class="widget-label">ARTIST: The Midnight</span>
+            <div class="resize-handle"></div>
+          </div>
+          <div id="widget_track" class="widget-box" onclick="selectField('track', event)">
+            <span class="widget-label">Riders on the Storm</span>
+            <div class="resize-handle"></div>
+          </div>
+
+          <div id="widget_status" class="widget-box" onclick="selectField('status', event)">
+            <span class="widget-label">STATUS: PLAYING</span>
+            <div class="resize-handle"></div>
+          </div>
+
+          <div id="widget_order" class="widget-box" onclick="selectField('order', event)">
+            <span class="widget-label">ORDER: Shuffle</span>
+            <div class="resize-handle"></div>
+          </div>
+
+          <div id="widget_volume" class="widget-box" onclick="selectField('volume', event)">
+            <span class="widget-label">VOL: 75%</span>
+            <div class="resize-handle"></div>
+          </div>
+
+          <div id="widget_cover" class="widget-box" onclick="selectField('cover', event)">
+            <div class="resize-handle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR CONTROLS -->
+  <div class="sidebar">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="openTab('propertiesTab')">Layout & Fields</button>
+      <button class="tab-btn" onclick="openTab('statesTab')">States</button>
+      <button class="tab-btn" onclick="openTab('jsonTab')">JSON Editor</button>
+    </div>
+
+    <!-- TAB 1: PROPERTIES -->
+    <div id="propertiesTab" class="tab-content active">
+      <div class="form-section">
+        <h3>Skin General</h3>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Image Filename</label>
+            <input type="text" id="cfg_image" value="Default.png" oninput="updateConfigFromForm()">
+          </div>
+          <div class="form-col">
+            <label>Font Family</label>
+            <input type="text" id="cfg_font_name" value="Segoe UI" oninput="updateConfigFromForm()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Base Font Size</label>
+            <input type="number" id="cfg_font_size" value="15" oninput="updateConfigFromForm()">
+          </div>
+          <div class="form-col">
+            <label>Volume Step</label>
+            <input type="text" id="cfg_volume_step" value="5%" oninput="updateConfigFromForm()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Skin Width (px)</label>
+            <input type="number" id="cfg_width" value="400" oninput="updateConfigFromForm()">
+          </div>
+          <div class="form-col">
+            <label>Skin Height (px)</label>
+            <input type="number" id="cfg_height" value="150" oninput="updateConfigFromForm()">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h3 style="margin-bottom:0;">Selected Field</h3>
+          <select id="fieldSelector" onchange="selectField(this.value)" style="padding:2px 8px;">
+            <option value="station">Station</option>
+            <option value="artist">Artist Name</option>
+            <option value="track">Track Title</option>
+            <option value="status">Status</option>
+            <option value="order">Order</option>
+            <option value="volume">Volume</option>
+            <option value="cover">Album Cover</option>
+          </select>
+        </div>
+
+        <div class="form-row" style="margin-bottom:10px;">
+          <label class="checkbox-label">
+            <input type="checkbox" id="field_enabled" onchange="updateSelectedFieldFromForm()"> Enabled in Skin
+          </label>
+        </div>
+
+        <div class="form-row two-col">
+          <div class="form-col">
+            <label>X (Left)</label>
+            <input type="number" id="field_x" oninput="updateSelectedFieldFromForm()">
+          </div>
+          <div class="form-col">
+            <label>Y (Top)</label>
+            <input type="number" id="field_y" oninput="updateSelectedFieldFromForm()">
+          </div>
+          <div class="form-col">
+            <label>Width</label>
+            <input type="number" id="field_width" oninput="updateSelectedFieldFromForm()">
+          </div>
+          <div class="form-col">
+            <label>Height</label>
+            <input type="number" id="field_height" oninput="updateSelectedFieldFromForm()">
+          </div>
+        </div>
+
+        <!-- Component Background Props -->
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--panel-border);">
+          <div class="form-row" style="margin-bottom: 8px;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="field_background" onchange="updateSelectedFieldFromForm()"> Background Rectangle
+            </label>
+          </div>
+          <div class="form-row" id="bgPropsRow" style="margin-bottom: 0;">
+            <div class="form-col narrow">
+              <label>BG Color</label>
+              <input type="color" id="field_bg_color_picker" onchange="syncComponentBgColorInput(this.value)" oninput="updateSelectedFieldFromForm()">
+            </div>
+            <div class="form-col">
+              <label>BG Hex</label>
+              <input type="text" id="field_bg_color_hex" oninput="syncComponentBgColorHex(this.value)">
+            </div>
+            <div class="form-col">
+              <label>Transparency (%)</label>
+              <input type="number" id="field_bg_opacity" min="0" max="100" value="50" oninput="updateSelectedFieldFromForm()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Text specific fields -->
+        <div id="textSpecificProps">
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-col">
+              <label>Font Size</label>
+              <input type="number" id="field_fontSize" oninput="updateSelectedFieldFromForm()">
+            </div>
+            <div class="form-col narrow">
+              <label>Color</label>
+              <input type="color" id="field_color" onchange="syncColorInput(this.value)" oninput="updateSelectedFieldFromForm()">
+            </div>
+            <div class="form-col">
+              <label>Hex</label>
+              <input type="text" id="field_color_hex" oninput="syncColorHex(this.value)">
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-col">
+              <label>Alignment</label>
+              <select id="field_align" onchange="updateSelectedFieldFromForm()">
+                <option value="near">Left (Near)</option>
+                <option value="center">Center</option>
+                <option value="far">Right (Far)</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Prefix (e.g. "Playlist: ")</label>
+              <input type="text" id="field_prefix" oninput="updateSelectedFieldFromForm()">
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-col">
+              <label>Format Template (e.g. "[%s]" or "%s")</label>
+              <input type="text" id="field_format" oninput="updateSelectedFieldFromForm()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Cover Specific Props -->
+        <div id="coverSpecificProps" style="display:none; margin-top:8px;">
+          <div class="form-row">
+            <div class="form-col">
+              <label>Z-Order Layer</label>
+              <select id="field_z_order" onchange="updateSelectedFieldFromForm()">
+                <option value="below">Below Skin (Cutout underneath)</option>
+                <option value="above">Above Skin (On top)</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Keep Aspect Ratio</label>
+              <select id="field_keep_aspect" onchange="updateSelectedFieldFromForm()">
+                <option value="true">Yes (Preserve Aspect)</option>
+                <option value="false">No (Stretch to box)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Volume Specific Props -->
+        <div id="volumeSpecificProps" style="display:none; margin-top:8px;">
+          <div class="form-row">
+            <div class="form-col">
+              <label>Display Type</label>
+              <select id="field_type" onchange="updateSelectedFieldFromForm()">
+                <option value="text">Text Only ("75%")</option>
+                <option value="bar">Progress Bar</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Bar BG Color</label>
+              <input type="color" id="field_bg_color" oninput="updateSelectedFieldFromForm()">
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="field_show_text" onchange="updateSelectedFieldFromForm()"> Show Text On Bar
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: STATES -->
+    <div id="statesTab" class="tab-content">
+      <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px;">
+        Choose which components are displayed for each radio player state. For instance, volume adjustments can show only the volume widget.
+      </div>
+
+      <div class="form-section">
+        <h3>State: Playing</h3>
+        <div id="state_playing_checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+      </div>
+
+      <div class="form-section">
+        <h3>State: Paused</h3>
+        <div id="state_paused_checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+      </div>
+
+      <div class="form-section">
+        <h3>State: Station Change</h3>
+        <div id="state_station_checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+      </div>
+
+      <div class="form-section">
+        <h3>State: Order Change</h3>
+        <div id="state_order_checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+      </div>
+
+      <div class="form-section">
+        <h3>State: Volume Change</h3>
+        <div id="state_volume_checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: JSON EDITOR -->
+    <div id="jsonTab" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 0.8rem; color: var(--text-secondary);">Directly editable JSON output / input:</span>
+        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="applyJSONFromEditor()">Apply Pasted JSON</button>
+      </div>
+      <textarea id="jsonEditor" spellcheck="false"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Core Configuration Schema
+  let config = {
+    image: "Default.png",
+    font_name: "Segoe UI",
+    font_size: 15,
+    volume_step: "5%",
+    width: 400,
+    height: 150,
+    cover:   { x: 16,  y: 16,  width: 118, height: 118, z_order: "below", keep_aspect: true, enabled: true, background: false, background_color: "#000000", background_opacity: 50 },
+    station: { x: 146, y: 14,  width: 240, height: 24,  font_size: 15, color: "#00D2FF", align: "near", prefix: "STATION: ", format: "", enabled: true,  background: false, background_color: "#000000", background_opacity: 50 },
+    artist:  { x: 146, y: 38,  width: 240, height: 24,  font_size: 15, color: "#00D2FF", align: "near", prefix: "ARTIST: ",  format: "", enabled: false, background: false, background_color: "#000000", background_opacity: 50 },
+    track:   { x: 146, y: 62,  width: 240, height: 28,  font_size: 17, color: "#FFFFFF", align: "near", prefix: "",         format: "", enabled: true,  background: false, background_color: "#000000", background_opacity: 50 },
+    status:  { x: 146, y: 90,  width: 160, height: 22,  font_size: 14, color: "#FFD700", align: "near", prefix: "STATUS: ",  format: "", enabled: true,  background: false, background_color: "#000000", background_opacity: 50 },
+    order:   { x: 146, y: 116, width: 160, height: 22,  font_size: 14, color: "#00D2FF", align: "near", prefix: "ORDER: ",   format: "", enabled: true,  background: false, background_color: "#000000", background_opacity: 50 },
+    volume:  { x: 295, y: 116, width: 90,  height: 22,  font_size: 16, color: "#FFFFFF", align: "near", prefix: "VOL: ",     format: "", type: "text", bg_color: "#232328", show_text: true, enabled: true, background: false, background_color: "#000000", background_opacity: 50 },
+    states: {
+      playing: { show: ["station", "artist", "track", "status", "order", "cover", "volume"] },
+      paused:  { show: ["station", "artist", "track", "status", "cover"] },
+      station: { show: ["station", "artist", "track", "order", "cover"] },
+      order:   { show: ["station", "artist", "track", "order", "cover"] },
+      volume:  { show: ["volume"] }
+    }
+  };
+
+  let currentZoom = 1;
+  let activeField = 'station';
+  let activeStatePreview = 'all';
+  let loadedImageDataUrl = null;
+  let loadedImageNaturalWidth = 0;
+  let loadedImageNaturalHeight = 0;
+
+  // Drag & Resize State
+  let isDragging = false;
+  let isResizing = false;
+  let dragStartX = 0, dragStartY = 0;
+  let elemInitialX = 0, elemInitialY = 0, elemInitialW = 0, elemInitialH = 0;
+
+  const elementsList = ["cover", "station", "artist", "track", "status", "order", "volume"];
+  const stateKeys = ["playing", "paused", "station", "order", "volume"];
+
+  const BG_MIN_PADDING = 3;
+
+  // Initialize
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('cfg_width').value = config.width || 400;
+    document.getElementById('cfg_height').value = config.height || 150;
+    initStatesCheckboxes();
+    renderAll();
+    setupImageLoader();
+    setupDragAndDrop();
+    selectField('station');
+  });
+
+  function hexToRgba(hex, opacityPercent) {
+    if (!hex) hex = '#000000';
+    hex = hex.replace('#', '');
+    if (hex.startsWith('0x')) hex = hex.substring(2);
+    if (hex.length === 3) {
+      hex = hex.split('').map(c => c + c).join('');
+    }
+    if (hex.length !== 6) hex = '000000';
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 4), 16) || 0;
+    const b = parseInt(hex.substring(4, 6), 16) || 0;
+    const pct = (opacityPercent !== undefined && !isNaN(opacityPercent)) ? Math.max(0, Math.min(100, opacityPercent)) : 50;
+    const a = (pct / 100).toFixed(2);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+
+  function setZoom(factor) {
+    currentZoom = factor;
+    const wrapper = document.getElementById('boxWrapper');
+    wrapper.style.transform = `scale(${factor})`;
+    
+    const skinW = config.width || 400;
+    const skinH = config.height || 150;
+    const scaledW = skinW * factor;
+    const scaledH = skinH * factor;
+    wrapper.parentElement.style.minWidth = `${scaledW + 80}px`;
+    wrapper.parentElement.style.minHeight = `${scaledH + 80}px`;
+
+    document.querySelectorAll('#zoomGroup button').forEach(b => {
+      b.classList.toggle('active', b.textContent === factor + 'x');
+    });
+  }
+
+  function changePreviewState(val) {
+    activeStatePreview = val;
+    renderAll();
+  }
+
+  function openTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+
+    if (tabId === 'jsonTab') {
+      updateJSONEditor();
+    }
+  }
+
+  function initStatesCheckboxes() {
+    stateKeys.forEach(st => {
+      const container = document.getElementById(`state_${st}_checks`);
+      container.innerHTML = '';
+      elementsList.forEach(field => {
+        const checked = config.states[st].show.includes(field) ? 'checked' : '';
+        const lbl = document.createElement('label');
+        lbl.className = 'checkbox-label';
+        lbl.innerHTML = `<input type="checkbox" value="${field}" ${checked} onchange="onStateCheckboxChange('${st}', '${field}', this.checked)"> ${field.toUpperCase()}`;
+        container.appendChild(lbl);
+      });
+    });
+  }
+
+  function onStateCheckboxChange(state, field, isChecked) {
+    let arr = config.states[state].show;
+    if (isChecked && !arr.includes(field)) {
+      arr.push(field);
+    } else if (!isChecked && arr.includes(field)) {
+      config.states[state].show = arr.filter(f => f !== field);
+    }
+    renderAll();
+    updateJSONEditor();
+  }
+
+  function updateDimensionNotice() {
+    const banner = document.getElementById('dimensionNotice');
+    const skinW = config.width || 400;
+    const skinH = config.height || 150;
+    if (loadedImageNaturalWidth > skinW || loadedImageNaturalHeight > skinH) {
+      banner.style.display = 'block';
+      banner.innerHTML = `Warning: Uploaded image is <strong>${loadedImageNaturalWidth}x${loadedImageNaturalHeight}px</strong> which exceeds the configured <strong>${skinW}x${skinH}</strong> frame! The game aligns to top-left and clamps/crops anything overflowing ${skinW}x${skinH}.`;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  function setupImageLoader() {
+    const input = document.getElementById('imageInput');
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      config.image = file.name;
+      document.getElementById('cfg_image').value = file.name;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedImageDataUrl = event.target.result;
+          loadedImageNaturalWidth = img.naturalWidth;
+          loadedImageNaturalHeight = img.naturalHeight;
+          updateDimensionNotice();
+          renderSkinBackground();
+          renderAll();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderSkinBackground() {
+    const layer = document.getElementById('skinLayer');
+    if (loadedImageDataUrl) {
+      layer.style.backgroundImage = `url("${loadedImageDataUrl}")`;
+    } else {
+      layer.style.backgroundImage = 'none';
+    }
+  }
+
+  function selectField(field, event) {
+    if (event) event.stopPropagation();
+    activeField = field;
+    document.getElementById('fieldSelector').value = field;
+
+    document.querySelectorAll('.widget-box').forEach(el => el.classList.remove('selected'));
+    const activeEl = document.getElementById(`widget_${field}`);
+    if (activeEl) activeEl.classList.add('selected');
+
+    populateSidebarFieldForm();
+  }
+
+  function populateSidebarFieldForm() {
+    const data = config[activeField];
+    if (!data) return;
+
+    document.getElementById('field_enabled').checked = data.enabled !== false;
+    document.getElementById('field_background').checked = !!data.background;
+    const bgColor = data.background_color || '#000000';
+    document.getElementById('field_bg_color_picker').value = normalizeHexColor(bgColor);
+    document.getElementById('field_bg_color_hex').value = bgColor;
+    document.getElementById('field_bg_opacity').value = data.background_opacity !== undefined ? data.background_opacity : 50;
+
+    document.getElementById('field_x').value = data.x;
+    document.getElementById('field_y').value = data.y;
+    document.getElementById('field_width').value = data.width;
+    document.getElementById('field_height').value = data.height;
+
+    const isCover = activeField === 'cover';
+    const isVolume = activeField === 'volume';
+
+    document.getElementById('textSpecificProps').style.display = isCover ? 'none' : 'block';
+    document.getElementById('coverSpecificProps').style.display = isCover ? 'block' : 'none';
+    document.getElementById('volumeSpecificProps').style.display = isVolume ? 'block' : 'none';
+
+    if (!isCover) {
+      document.getElementById('field_fontSize').value = data.font_size || config.font_size;
+      const colorVal = data.color || '#FFFFFF';
+      document.getElementById('field_color').value = normalizeHexColor(colorVal);
+      document.getElementById('field_color_hex').value = colorVal;
+      document.getElementById('field_align').value = data.align || 'near';
+      document.getElementById('field_prefix').value = data.prefix || '';
+      document.getElementById('field_format').value = data.format || '';
+    }
+
+    if (isCover) {
+      document.getElementById('field_z_order').value = data.z_order || 'below';
+      document.getElementById('field_keep_aspect').value = data.keep_aspect !== false ? 'true' : 'false';
+    }
+
+    if (isVolume) {
+      document.getElementById('field_type').value = data.type || 'text';
+      document.getElementById('field_bg_color').value = normalizeHexColor(data.bg_color || '#232328');
+      document.getElementById('field_show_text').checked = data.show_text !== false;
+    }
+  }
+
+  function normalizeHexColor(color) {
+    if (!color) return '#ffffff';
+    if (color.startsWith('#') && color.length === 7) return color;
+    if (color.startsWith('0x')) return '#' + color.substring(2).padStart(6, '0');
+    return '#ffffff';
+  }
+
+  function syncColorInput(hex) {
+    document.getElementById('field_color_hex').value = hex;
+    updateSelectedFieldFromForm();
+  }
+
+  function syncColorHex(hex) {
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      document.getElementById('field_color').value = hex;
+    }
+    updateSelectedFieldFromForm();
+  }
+
+  function syncComponentBgColorInput(hex) {
+    document.getElementById('field_bg_color_hex').value = hex;
+    updateSelectedFieldFromForm();
+  }
+
+  function syncComponentBgColorHex(hex) {
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      document.getElementById('field_bg_color_picker').value = hex;
+    }
+    updateSelectedFieldFromForm();
+  }
+
+  function updateConfigFromForm() {
+    config.image = document.getElementById('cfg_image').value;
+    config.font_name = document.getElementById('cfg_font_name').value;
+    config.font_size = parseInt(document.getElementById('cfg_font_size').value) || 15;
+    config.volume_step = document.getElementById('cfg_volume_step').value;
+    config.width = parseInt(document.getElementById('cfg_width').value) || 400;
+    config.height = parseInt(document.getElementById('cfg_height').value) || 150;
+    renderAll();
+    updateJSONEditor();
+  }
+
+  function updateSelectedFieldFromForm() {
+    const data = config[activeField];
+    if (!data) return;
+
+    data.enabled = document.getElementById('field_enabled').checked;
+    data.background = document.getElementById('field_background').checked;
+    data.background_color = document.getElementById('field_bg_color_hex').value || '#000000';
+    data.background_opacity = parseInt(document.getElementById('field_bg_opacity').value);
+    if (isNaN(data.background_opacity)) data.background_opacity = 50;
+
+    data.x = parseInt(document.getElementById('field_x').value) || 0;
+    data.y = parseInt(document.getElementById('field_y').value) || 0;
+    data.width = parseInt(document.getElementById('field_width').value) || 10;
+    data.height = parseInt(document.getElementById('field_height').value) || 10;
+
+    if (activeField !== 'cover') {
+      data.font_size = parseInt(document.getElementById('field_fontSize').value) || config.font_size;
+      data.color = document.getElementById('field_color_hex').value || '#FFFFFF';
+      data.align = document.getElementById('field_align').value;
+      data.prefix = document.getElementById('field_prefix').value;
+      data.format = document.getElementById('field_format').value;
+    }
+
+    if (activeField === 'cover') {
+      data.z_order = document.getElementById('field_z_order').value;
+      data.keep_aspect = document.getElementById('field_keep_aspect').value === 'true';
+    }
+
+    if (activeField === 'volume') {
+      data.type = document.getElementById('field_type').value;
+      data.bg_color = document.getElementById('field_bg_color').value;
+      data.show_text = document.getElementById('field_show_text').checked;
+    }
+
+    renderAll();
+    updateJSONEditor();
+  }
+
+  function renderAll() {
+    const fontFamily = config.font_name || 'Segoe UI, Arial, sans-serif';
+
+    // Update screen-box and zoom bounds
+    const skinW = config.width || 400;
+    const skinH = config.height || 150;
+    const screenBox = document.getElementById('screenBox');
+    screenBox.style.width = skinW + 'px';
+    screenBox.style.height = skinH + 'px';
+
+    const wrapper = document.getElementById('boxWrapper');
+    wrapper.style.transform = `scale(${currentZoom})`;
+    const scaledW = skinW * currentZoom;
+    const scaledH = skinH * currentZoom;
+    wrapper.parentElement.style.minWidth = `${scaledW + 80}px`;
+    wrapper.parentElement.style.minHeight = `${scaledH + 80}px`;
+
+    updateDimensionNotice();
+
+    // Check visibility based on preview state
+    const isStateMode = activeStatePreview !== 'all';
+    const activeShowList = isStateMode ? config.states[activeStatePreview].show : elementsList;
+
+    // Cover Render
+    const cv = config.cover;
+    const coverBelow = document.getElementById('coverBelow');
+    const coverAbove = document.getElementById('coverAbove');
+    const coverWidget = document.getElementById('widget_cover');
+
+    const showCover = (cv.enabled !== false) && activeShowList.includes('cover');
+
+    coverBelow.style.display = 'none';
+    coverAbove.style.display = 'none';
+    coverWidget.style.display = showCover ? 'block' : 'none';
+
+    if (showCover) {
+      const targetCover = cv.z_order === 'above' ? coverAbove : coverBelow;
+      targetCover.style.display = 'flex';
+      targetCover.style.left = cv.x + 'px';
+      targetCover.style.top = cv.y + 'px';
+      targetCover.style.width = cv.width + 'px';
+      targetCover.style.height = cv.height + 'px';
+    }
+
+    coverWidget.style.left = cv.x + 'px';
+    coverWidget.style.top = cv.y + 'px';
+    coverWidget.style.width = cv.width + 'px';
+    coverWidget.style.height = cv.height + 'px';
+
+    if (cv.background) {
+      const cvBgRgba = hexToRgba(cv.background_color, cv.background_opacity);
+      coverWidget.style.backgroundColor = cvBgRgba;
+      if (showCover) {
+        (cv.z_order === 'above' ? coverAbove : coverBelow).style.backgroundColor = cvBgRgba;
+      }
+    } else {
+      coverWidget.style.backgroundColor = 'transparent';
+    }
+
+    // Widget Render — raw values; prefix/format applied below
+    const showArtist =
+      (config.artist.enabled !== false) && activeShowList.includes('artist');
+
+    const mockTexts = {
+      station: "Electrosphere FM",
+      artist:  "The Midnight",
+      track:   "Riders on the Storm",
+      status:  "PLAYING",
+      order:   "Shuffle",
+      volume:  "75%"
+    };
+
+    ['station', 'artist', 'track', 'status', 'order', 'volume'].forEach(key => {
+      const w = config[key];
+      const el = document.getElementById(`widget_${key}`);
+      const shouldDisplay = (w.enabled !== false) && activeShowList.includes(key);
+
+      el.style.display = shouldDisplay ? 'flex' : 'none';
+      if (!shouldDisplay) return;
+
+      el.style.left = w.x + 'px';
+      el.style.top = w.y + 'px';
+      el.style.width = w.width + 'px';
+      el.style.height = w.height + 'px';
+      el.style.fontFamily = fontFamily;
+      el.style.fontSize = (w.font_size || config.font_size) + 'px';
+      el.style.color = w.color || '#FFFFFF';
+
+      // Alignment
+      if (w.align === 'center') el.style.justifyContent = 'center';
+      else if (w.align === 'far') el.style.justifyContent = 'flex-end';
+      else el.style.justifyContent = 'flex-start';
+
+      // Text formatting
+      let displayText = mockTexts[key];
+
+      // Mirror the C++ behavior: when artist isn't shown separately,
+      // fold "Artist - " into the track title.
+      if (key === 'track' && !showArtist) {
+        displayText = mockTexts.artist + ' - ' + mockTexts.track;
+      }
+
+      if (w.format && w.format.includes('%s')) {
+        displayText = w.format.replace('%s', displayText);
+      } else if (w.prefix) {
+        displayText = w.prefix + displayText;
+      }
+
+      el.style.backgroundColor = 'transparent';
+
+      if (key === 'volume' && w.type === 'bar') {
+        el.innerHTML = `
+          <div class="bar-preview" style="background:${w.bg_color || '#232328'};">
+            <div class="bar-fill" style="background:${w.color || 'var(--accent)'}; width:75%;"></div>
+            ${w.show_text ? `<div class="bar-text">${displayText}</div>` : ''}
+          </div>
+          <div class="resize-handle"></div>
+        `;
+        if (w.background) {
+          el.style.backgroundColor = hexToRgba(w.background_color, w.background_opacity);
+        }
+      } else {
+        el.innerHTML = `<span class="widget-label">${displayText}</span><div class="resize-handle"></div>`;
+        const labelSpan = el.querySelector('.widget-label');
+
+        if (w.background) {
+          const bgRgba = hexToRgba(w.background_color, w.background_opacity);
+          const textWidth = labelSpan ? labelSpan.offsetWidth : 0;
+
+          if (labelSpan && textWidth < w.width) {
+            el.style.backgroundColor = 'transparent';
+            labelSpan.style.paddingLeft  = BG_MIN_PADDING + 'px';
+            labelSpan.style.paddingRight = BG_MIN_PADDING + 'px';
+            labelSpan.style.marginLeft   = (-BG_MIN_PADDING) + 'px';
+            labelSpan.style.marginRight  = (-BG_MIN_PADDING) + 'px';
+            labelSpan.style.backgroundColor = bgRgba;
+          } else {
+            el.style.backgroundColor = bgRgba;
+            if (labelSpan) labelSpan.style.backgroundColor = 'transparent';
+          }
+        } else if (labelSpan) {
+          labelSpan.style.backgroundColor = 'transparent';
+        }
+      }
+    });
+  }
+
+  // Drag and Resize Implementation
+  function setupDragAndDrop() {
+    window.addEventListener('mousedown', (e) => {
+      const widget = e.target.closest('.widget-box');
+      if (!widget) return;
+
+      const fieldName = widget.id.replace('widget_', '');
+      selectField(fieldName);
+
+      const isHandle = e.target.classList.contains('resize-handle');
+      if (isHandle) {
+        isResizing = true;
+      } else {
+        isDragging = true;
+      }
+
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+
+      const data = config[activeField];
+      elemInitialX = data.x;
+      elemInitialY = data.y;
+      elemInitialW = data.width;
+      elemInitialH = data.height;
+
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging && !isResizing) return;
+
+      const deltaX = Math.round((e.clientX - dragStartX) / currentZoom);
+      const deltaY = Math.round((e.clientY - dragStartY) / currentZoom);
+      const data = config[activeField];
+
+      if (isDragging) {
+        data.x = Math.max(0, elemInitialX + deltaX);
+        data.y = Math.max(0, elemInitialY + deltaY);
+      } else if (isResizing) {
+        data.width = Math.max(10, elemInitialW + deltaX);
+        data.height = Math.max(8, elemInitialH + deltaY);
+      }
+
+      populateSidebarFieldForm();
+      renderAll();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging || isResizing) {
+        isDragging = false;
+        isResizing = false;
+        updateJSONEditor();
+      }
+    });
+
+    // Keyboard Nudge (Arrow Keys)
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+      if (!config[activeField]) return;
+
+      const step = e.shiftKey ? 5 : 1;
+      let handled = false;
+
+      if (e.key === 'ArrowLeft') { config[activeField].x -= step; handled = true; }
+      if (e.key === 'ArrowRight') { config[activeField].x += step; handled = true; }
+      if (e.key === 'ArrowUp') { config[activeField].y -= step; handled = true; }
+      if (e.key === 'ArrowDown') { config[activeField].y += step; handled = true; }
+
+      if (handled) {
+        e.preventDefault();
+        populateSidebarFieldForm();
+        renderAll();
+        updateJSONEditor();
+      }
+    });
+  }
+
+  // JSON Syncing
+  function generateCleanJSON() {
+    const out = {
+      image: config.image,
+      font_name: config.font_name,
+      font_size: config.font_size,
+      volume_step: config.volume_step,
+      width: config.width || 400,
+      height: config.height || 150,
+      cover: {
+        x: config.cover.x,
+        y: config.cover.y,
+        width: config.cover.width,
+        height: config.cover.height,
+        z_order: config.cover.z_order,
+        keep_aspect: config.cover.keep_aspect
+      }
+    };
+
+    if (config.cover.enabled === false) out.cover.enabled = false;
+    if (config.cover.background) out.cover.background = true;
+
+    ['station', 'artist', 'track', 'status', 'order', 'volume'].forEach(key => {
+      const src = config[key];
+      out[key] = {
+        x: src.x,
+        y: src.y,
+        width: src.width,
+        height: src.height,
+        font_size: src.font_size,
+        color: src.color
+      };
+
+      if (src.enabled === false) out[key].enabled = false;
+      if (src.background) out[key].background = true;
+      if (src.align && src.align !== 'near') out[key].align = src.align;
+      out[key].prefix = src.prefix !== undefined ? src.prefix : '';
+      if (src.format) out[key].format = src.format;
+
+      if (key === 'volume' && src.type === 'bar') {
+        out[key].type = 'bar';
+        if (src.bg_color) out[key].bg_color = src.bg_color;
+        if (src.show_text !== undefined) out[key].show_text = src.show_text;
+      }
+    });
+
+    out.states = config.states;
+    return JSON.stringify(out, null, 2);
+  }
+
+  function updateJSONEditor() {
+    document.getElementById('jsonEditor').value = generateCleanJSON();
+  }
+
+  function applyJSONFromEditor() {
+    try {
+      const text = document.getElementById('jsonEditor').value;
+      const parsed = JSON.parse(text);
+
+      config.image = parsed.image || config.image;
+      config.font_name = parsed.font_name || config.font_name;
+      config.font_size = parsed.font_size || config.font_size;
+      config.volume_step = parsed.volume_step || config.volume_step;
+      config.width = parsed.width || 400;
+      config.height = parsed.height || 150;
+
+      if (parsed.cover) {
+        Object.assign(config.cover, parsed.cover);
+        config.cover.enabled = parsed.cover.enabled !== false;
+        config.cover.background = !!parsed.cover.background;
+      }
+
+      ['station', 'artist', 'track', 'status', 'order', 'volume'].forEach(k => {
+        if (parsed[k]) {
+          Object.assign(config[k], parsed[k]);
+          config[k].enabled = parsed[k].enabled !== false;
+          config[k].background = !!parsed[k].background;
+          config[k].align = parsed[k].align || 'near';
+          config[k].prefix = parsed[k].prefix !== undefined ? parsed[k].prefix : '';
+          config[k].format = parsed[k].format !== undefined ? parsed[k].format : '';
+        }
+      });
+
+      if (parsed.volume) {
+        config.volume.type = parsed.volume.type || 'text';
+        config.volume.bg_color = parsed.volume.bg_color || '#232328';
+        config.volume.show_text = parsed.volume.show_text !== false;
+      }
+
+      if (parsed.states) {
+        config.states = parsed.states;
+        initStatesCheckboxes();
+      }
+
+      document.getElementById('cfg_image').value = config.image;
+      document.getElementById('cfg_font_name').value = config.font_name;
+      document.getElementById('cfg_font_size').value = config.font_size;
+      document.getElementById('cfg_volume_step').value = config.volume_step;
+      document.getElementById('cfg_width').value = config.width;
+      document.getElementById('cfg_height').value = config.height;
+
+      populateSidebarFieldForm();
+      renderAll();
+      alert('JSON applied successfully!');
+    } catch (err) {
+      alert('Invalid JSON! Check syntax: ' + err.message);
+    }
+  }
+
+  function copyJSON() {
+    updateJSONEditor();
+    const str = document.getElementById('jsonEditor').value;
+    navigator.clipboard.writeText(str).then(() => {
+      alert('Skin JSON copied to clipboard!');
+    });
+  }
+
+  function exportJSON() {
+    updateJSONEditor();
+    const str = document.getElementById('jsonEditor').value;
+    const blob = new Blob([str], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const skinName = (config.image || "Skin").replace(/\.[^/.]+$/, "");
+    a.href = url;
+    a.download = skinName + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+{
+  "image": "mw05_black.png",
+  "font_name": "Segoe UI",
+  "font_size": 15,
+  "volume_step": "2%",
+  "width": 572,
+  "height": 95,
+  "cover": {
+    "x": 16,
+    "y": 16,
+    "width": 118,
+    "height": 118,
+    "z_order": "below",
+    "keep_aspect": true,
+    "enabled": false
+  },
+  "station": {
+    "x": 107,
+    "y": 12,
+    "width": 420,
+    "height": 23,
+    "font_size": 21,
+    "color": "#ffffff",
+    "prefix": "Playlist: "
+  },
+  "artist": {
+    "x": 107,
+    "y": 36,
+    "width": 420,
+    "height": 29,
+    "font_size": 20,
+    "color": "#ccbea4",
+    "prefix": ""
+  },
+  "track": {
+    "x": 107,
+    "y": 12,
+    "width": 420,
+    "height": 23,
+    "font_size": 21,
+    "color": "#FFFFFF",
+    "prefix": ""
+  },
+  "status": {
+    "x": 107,
+    "y": 63,
+    "width": 256,
+    "height": 22,
+    "font_size": 19,
+    "color": "#ffffff",
+    "prefix": ""
+  },
+  "order": {
+    "x": 330,
+    "y": 64,
+    "width": 194,
+    "height": 22,
+    "font_size": 19,
+    "color": "#ffffff",
+    "align": "far",
+    "prefix": ""
+  },
+  "volume": {
+    "x": 32,
+    "y": 65,
+    "width": 92,
+    "height": 25,
+    "font_size": 18,
+    "color": "#FFFFFF",
+    "prefix": ""
+  },
+  "states": {
+    "playing": {
+      "show": [
+        "artist",
+        "track"
+      ]
+    },
+    "paused": {
+      "show": [
+        "status",
+        "station"
+      ]
+    },
+    "station": {
+      "show": [
+        "order",
+        "station"
+      ]
+    },
+    "order": {
+      "show": [
+        "order",
+        "station",
+        "status"
+      ]
+    },
+    "volume": {
+      "show": [
+        "volume",
+        "track",
+        "artist"
+      ]
+    }
+  }
+}
